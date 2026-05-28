@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eclipse Telemetry - Multi Architecture</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Courier+Prime:wght@400;700&family=Orbitron:wght@400;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; padding: 0; min-height: 100vh; overflow-x: hidden; }
+        .tab-content { display: none; animation: fadeIn 0.3s ease forwards; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: scale(1); } }
+        canvas { max-width: 100%; }
+        
+        /* Botones del selector de temas en ajustes */
+        .theme-btn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 15px; }
+        .t-btn { padding: 15px 10px; border: none; cursor: pointer; font-weight: bold; border-radius: 6px; transition: transform 0.1s; }
+        .t-btn:active { transform: scale(0.95); }
+    </style>
+
+    <style id="theme-style"></style>
+</head>
+<body>
+
+    <header id="main-header">
+        <div class="logo" id="ui-logo">ECLIPSE TELEMETRY</div>
+        <div class="status-container">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusTexto">DISCONNECTED</span>
+        </div>
+    </header>
+
+    <nav id="telemetryDock">
+        <button class="nav-btn active" onclick="cambiarPestana('vista-ambos', this)" title="General Dashboard">
+            <svg viewBox="0 0 24 24"><path d="M4 13h6c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v8c0 .55.45 1 1 1zm0 7h6c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1zm10 0h6c.55 0 1-.45 1-1v-8c0-.55-.45-1-1-1h-6c-.55 0-1 .45-1 1v8c0 .55.45 1 1 1zM13 4v4c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1h-6c-.55 0-1 .45-1 1z"/></svg>
+        </button>
+        <button class="nav-btn" onclick="cambiarPestana('vista-temp', this)" title="Temperature">
+            <svg viewBox="0 0 24 24"><path d="M15 13V5c0-1.66-1.34-3-3-3S9 3.34 9 5v8c-1.21.91-2 2.37-2 4 0 2.76 2.24 5 5 5s5-2.24 5-5c0-1.63-.79-3.09-2-4zm-3 7c-1.66 0-3-1.34-3-3 0-1.09.58-2.05 1.46-2.58l.54-.32V5c0-.55.45-1 1-1s1 .45 1 1v7.1l.54.32c.88.53 1.46 1.49 1.46 2.58 0 1.66-1.34 3-3 3z"/></svg>
+        </button>
+        <button class="nav-btn" onclick="cambiarPestana('vista-luz', this)" title="Luminosity">
+            <svg viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.42l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.42L5.99 4.58zm12.37 12.37c-.39-.39-1.02-.39-1.41 0s-.39 1.03 0 1.42l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.42l-1.06-1.06zm1.06-12.37c-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.42s1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.42zm-12.37 12.37c-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.42s1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.42z"/></svg>
+        </button>
+        <button class="nav-btn" onclick="cambiarPestana('vista-grafica', this)" title="Realtime Analytics">
+            <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z"/></svg>
+        </button>
+        <button class="nav-btn" onclick="cambiarPestana('vista-ajustes', this)" title="Settings">
+            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </button>
+    </nav>
+
+    <main id="main-content">
+        <div class="actions-panel">
+            <button class="btn-action" id="botonConectar">Connect Device</button>
+            <button class="btn-action" id="botonExcel" disabled>Download .XLSX</button>
+        </div>
+
+        <div id="vista-ambos" class="tab-content active">
+            <div class="grid-cards" id="contenedor-cards-global">
+                <div class="card">
+                    <h2>Cabin Temp</h2>
+                    <div class="valor-gigante"><span id="temp-t1">--</span><span class="unit">°C</span></div>
+                </div>
+                <div class="card">
+                    <h2>Solar Intensity</h2>
+                    <div class="valor-gigante"><span id="luz-t1">--</span><span class="unit">%</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="vista-temp" class="tab-content">
+            <div class="grid-cards">
+                <div class="card" style="max-width: 450px; margin: 0 auto;">
+                    <h2>Temperature Sensor</h2>
+                    <div class="valor-gigante"><span id="temp-t2">--</span><span class="unit">°C</span></div>
+                </div>
+            </div>
+            <div class="tabla-contenedor">
+                <h3>Temperature Log</h3>
+                <table>
+                    <thead><tr><th>Timestamp</th><th>Value</th></tr></thead>
+                    <tbody id="tabla-temp-cuerpo"><tr><td colspan="2" style="color: #A0A0A0; font-style: italic;">Awaiting connection...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="vista-luz" class="tab-content">
+            <div class="grid-cards">
+                <div class="card" style="max-width: 450px; margin: 0 auto;">
+                    <h2>Luminosity Level</h2>
+                    <div class="valor-gigante"><span id="luz-t2">--</span><span class="unit">%</span></div>
+                </div>
+            </div>
+            <div class="tabla-contenedor">
+                <h3>Luminosity Log</h3>
+                <table>
+                    <thead><tr><th>Timestamp</th><th>Value</th></tr></thead>
+                    <tbody id="tabla-luz-cuerpo"><tr><td colspan="2" style="color: #A0A0A0; font-style: italic;">Awaiting connection...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="vista-grafica" class="tab-content">
+            <div class="chart-box">
+                <canvas id="graficaEclipse"></canvas>
+            </div>
+        </div>
+
+        <div id="vista-ajustes" class="tab-content">
+            <div class="seccion-ajustes config-destacada">
+                <h3>Arquitectura Visual del Sistema</h3>
+                <p style="margin-top:-10px; font-size:9.5pt; color:#8E8E93;">Cambia la disposición total de los menús y paneles.</p>
+                <div class="theme-btn-grid">
+                    <button class="t-btn" style="background:#fff; color:#333; border:1px solid #ccc;" onclick="aplicarArquitectura('nordico')">1. Dock Original</button>
+                    <button class="t-btn" style="background:#111; color:#0f0;" onclick="aplicarArquitectura('retro')">2. Sidebar Terminal</button>
+                    <button class="t-btn" style="background:#fcee0a; color:#000;" onclick="aplicarArquitectura('cyberpunk')">3. Header Cyber</button>
+                    <button class="t-btn" style="background:#FCFBF7; color:#C5A059; border:1px solid #C5A059;" onclick="aplicarArquitectura('luxury')">4. Centrado Lux</button>
+                    <button class="t-btn" style="background:#021124; color:#0ea5e9; border:1px solid #0ea5e9;" onclick="aplicarArquitectura('scifi')">5. Right Dock Sci-Fi</button>
+                </div>
+            </div>
+
+            <div class="seccion-ajustes">
+                <h3>Crear Nueva Pestaña Dinámica</h3>
+                <div class="control-group">
+                    <label>Nombre de Vista</label>
+                    <input type="text" id="nuevo-nombre-pestana" class="input-tesla" placeholder="Ej: Zona Exterior">
+                </div>
+                <button class="btn-action" onclick="crearPestanaDinamica()">Inyectar Nueva Pestaña</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // DICCIONARIO DE ARQUITECTURAS CSS
+        const arquitecturas = {
+            
+            /* TEMA 1: DOCK INFERIOR CLÁSICO (Nórdico - IDÉNTICO AL ORIGINAL) */
+            nordico: `
+                body { font-family: 'Gotham', 'Inter', '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #FFFFFF; color: #555555; display: flex; flex-direction: column; letter-spacing: -0.2px; }
+                header { display: flex; justify-content: space-between; align-items: center; padding: 30px 40px; background-color: #FFFFFF; }
+                .logo { font-size: 10pt; font-weight: 700; letter-spacing: 5px; color: #333333; text-transform: uppercase; }
+                .status-container { font-size: 8.5pt; font-weight: 500; color: #8E8E93; display: flex; align-items: center; letter-spacing: 0.5px; }
+                .status-dot { width: 7px; height: 7px; background-color: #E74C3C; border-radius: 50%; margin-right: 8px; }
+                
+                /* EL DOCK ORIGINAL EXACTO */
+                nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 8px 16px; border-radius: 16px; display: flex; gap: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); border: 1px solid #EAEAEA; z-index: 1000; flex-direction: row; width: auto; height: auto; align-items: center; }
+                .nav-btn { background: none; border: none; width: 54px; height: 54px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 12px; transition: all 0.2s ease; }
+                .nav-btn svg { width: 24px; height: 24px; fill: #8E8E93; transition: fill 0.2s ease, transform 0.2s ease; }
+                .nav-btn:hover { background-color: rgba(0, 0, 0, 0.03); }
+                .nav-btn:hover svg { fill: #333333; }
+                .nav-btn.active { background-color: #111111; }
+                .nav-btn.active svg { fill: #FFFFFF; transform: scale(1.05); }
+
+                main { max-width: 900px; width: 100%; margin: 0 auto; padding: 0 24px 120px 24px; }
+                .grid-cards { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; margin-bottom: 40px; }
+                .card { background-color: #FBFBFB; border: 1px solid #EAEAEA; border-radius: 12px; padding: 40px; flex: 1; min-width: 260px; text-align: center; }
+                .card h2 { margin: 0 0 10px 0; font-size: 8.5pt; font-weight: 600; color: #8E8E93; text-transform: uppercase; letter-spacing: 1px; }
+                .valor-gigante { font-size: 64pt; font-weight: 300; color: #333333; line-height: 1; letter-spacing: -2px; }
+                .unit { font-size: 22pt; font-weight: 300; color: #AAAAAA; margin-left: 4px; }
+                .actions-panel { display: flex; justify-content: center; gap: 12px; margin-bottom: 40px; }
+                .btn-action { background-color: #F4F4F4; color: #555555; border: none; padding: 14px 30px; font-size: 9pt; font-weight: 600; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; letter-spacing: 0.5px; }
+                .btn-action:hover { background-color: #EAEAEA; color: #333333; }
+                .seccion-ajustes { background-color: #FBFBFB; border: 1px solid #EAEAEA; border-radius: 12px; padding: 35px; margin-bottom: 25px; text-align: left; }
+                .input-tesla { width: 100%; max-width: 400px; padding: 12px; border: 1px solid #EAEAEA; background-color: #FFFFFF; border-radius: 6px; font-size: 9.5pt; color: #555555; outline: none; }
+                .tabla-contenedor { background-color: #FFFFFF; border: 1px solid #EAEAEA; border-radius: 12px; padding: 30px; max-width: 500px; margin: 20px auto 0 auto; }
+                table { width: 100%; border-collapse: collapse; font-size: 9.5pt; text-align: center; }
+                th { color: #8E8E93; font-weight: 600; padding: 14px; border-bottom: 1px solid #EAEAEA; text-transform: uppercase; font-size: 7.5pt; letter-spacing: 1px; }
+                td { padding: 16px; border-bottom: 1px solid #F9F9F9; color: #555555; }
+                .chart-box { background-color: #FBFBFB; border: 1px solid #EAEAEA; border-radius: 12px; padding: 30px; height: 420px; width: 100%; }
+            `,
+
+            /* TEMA 2: SIDEBAR IZQUIERDO (Terminal Retro) */
+            retro: `
+                body { font-family: 'Courier Prime', monospace; background: #021202; color: #0f0; display: grid; grid-template-columns: 80px 1fr; grid-template-rows: 70px 1fr; height: 100vh; overflow: hidden; text-shadow: 0 0 4px #0f0;}
+                header { grid-column: 1 / 3; grid-row: 1; display: flex; justify-content: space-between; align-items: center; padding: 0 30px; border-bottom: 2px dashed #0f0; background: #010a01; }
+                .logo { font-size: 12pt; font-weight: bold; }
+                .status-container { border: 1px solid #0f0; padding: 5px 10px; display:flex; align-items:center;}
+                .status-dot { width:8px; height:8px; background:#0f0; display:inline-block; margin-right:5px; }
+
+                /* Layout del Menu: Sidebar Estático */
+                nav { grid-column: 1; grid-row: 2; display: flex; flex-direction: column; align-items: center; padding-top: 20px; gap: 20px; border-right: 2px dashed #0f0; background: #010a01; position: static; transform: none; width: 100%; height: 100%; box-shadow: none; border-radius: 0; }
+                .nav-btn { width: 50px; height: 50px; background: transparent; border: 1px solid #0f0; cursor: pointer; border-radius:0; display:flex; justify-content:center; align-items:center;}
+                .nav-btn svg { width: 24px; fill: #0f0; }
+                .nav-btn.active { background: #0f0; }
+                .nav-btn.active svg { fill: #021202; }
+
+                main { grid-column: 2; grid-row: 2; padding: 30px; overflow-y: auto; max-width: none; }
+                .grid-cards { display: flex; flex-direction: column; gap: 20px; margin-bottom: 30px;}
+                .card { background: transparent; border: 2px solid #0f0; padding: 20px; border-radius:0; text-align:left;}
+                .card h2 { font-size: 12pt; color: #0f0; text-decoration: underline; margin:0 0 10px 0;}
+                .valor-gigante { font-size: 40pt; font-weight: bold; }
+                .unit { font-size: 16pt; }
+                .actions-panel { display: flex; gap: 15px; margin-bottom: 30px; justify-content: flex-start; }
+                .btn-action { background: transparent; color: #0f0; border: 2px solid #0f0; padding: 10px 20px; font-family: inherit; font-weight: bold; cursor: pointer; border-radius:0;}
+                .btn-action:hover { background: #0f0; color: #021202; }
+                .seccion-ajustes { border: 2px dashed #0f0; padding: 20px; margin-bottom: 20px; }
+                .input-tesla { background: #021202; color: #0f0; border: 1px solid #0f0; padding: 10px; font-family: inherit; width: 100%; margin-bottom:10px; outline:none;}
+                .tabla-contenedor { border: 2px solid #0f0; padding: 15px; max-width:none;}
+                table { width: 100%; text-align: left; border-collapse: collapse; }
+                th, td { border-bottom: 1px dashed #0f0; padding: 10px; }
+                .chart-box { border: 2px solid #0f0; padding: 15px; height: 350px; }
+            `,
+
+            /* TEMA 3: MENÚ SUPERIOR (Cyberpunk) */
+            cyberpunk: `
+                body { font-family: 'Chakra Petch', sans-serif; background: #0a0a0f; color: #00f0ff; display: flex; flex-direction: column; }
+                header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background: #111; border-bottom: 3px solid #ff0055; }
+                .logo { font-size: 16pt; font-weight: 900; color: #fcee0a; text-shadow: 2px 2px #ff0055; letter-spacing:2px;}
+                .status-container { color: #ff0055; font-weight: bold; border: 1px solid #ff0055; padding: 5px 15px; text-transform:uppercase; display:flex; align-items:center;}
+                .status-dot { width:10px; height:10px; background:#ff0055; display:inline-block; margin-right:5px; box-shadow: 0 0 10px #ff0055;}
+
+                /* Layout Menu: Debajo del Header */
+                nav { position: relative; bottom: auto; left: auto; transform: none; width: 100%; background: #0d0d14; display: flex; flex-direction: row; justify-content: center; gap: 30px; padding: 10px 0; border-bottom: 1px solid #00f0ff; box-shadow: none; border-radius: 0; z-index: 10; align-items: center;}
+                .nav-btn { width: 60px; height: 45px; background: #1a1a24; border: 1px solid #00f0ff; clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%); cursor:pointer; display:flex; justify-content:center; align-items:center;}
+                .nav-btn svg { width: 20px; fill: #00f0ff; }
+                .nav-btn.active { background: #00f0ff; }
+                .nav-btn.active svg { fill: #000; }
+
+                main { max-width: 1200px; margin: 0 auto; padding: 40px 20px; width: 100%; }
+                .grid-cards { display: flex; gap: 30px; flex-wrap: wrap; margin-bottom: 40px; }
+                .card { background: #12121c; border-left: 4px solid #fcee0a; border-right: 1px solid #00f0ff; border-top: 1px solid #00f0ff; border-bottom: 1px solid #00f0ff; padding: 30px; flex: 1; min-width:300px; text-align:center;}
+                .card h2 { color: #ff0055; font-size: 12pt; text-transform: uppercase; margin:0 0 10px 0;}
+                .valor-gigante { font-size: 55pt; font-weight: bold; color: #fff; }
+                .unit { color: #fcee0a; font-size: 20pt; }
+                .actions-panel { display: flex; justify-content:center; gap: 20px; margin-bottom: 40px; }
+                .btn-action { background: #fcee0a; color: #000; border: none; padding: 12px 30px; font-weight: bold; font-family: inherit; text-transform: uppercase; cursor:pointer; clip-path: polygon(0 0, 90% 0, 100% 100%, 10% 100%);}
+                .btn-action:hover { background: #ff0055; color:#fff;}
+                .seccion-ajustes { background: #12121c; border: 1px solid #ff0055; padding: 30px; margin-bottom: 20px; }
+                .input-tesla { background: #000; color: #00f0ff; border: 1px solid #00f0ff; padding: 12px; width: 100%; font-family:inherit; outline:none;}
+                .tabla-contenedor { background: #12121c; border: 1px solid #00f0ff; padding: 20px; max-width:none;}
+                table { width: 100%; border-collapse: collapse; text-align: left; }
+                th { color: #fcee0a; border-bottom: 2px solid #ff0055; padding: 10px; }
+                td { padding: 10px; border-bottom: 1px solid #222; color:#fff;}
+                .chart-box { background: #12121c; border: 1px solid #00f0ff; padding: 20px; height: 400px; }
+            `,
+
+            /* TEMA 4: DISEÑO CENTRADO (Luxury) */
+            luxury: `
+                body { font-family: 'Playfair Display', serif; background: #FCFBF7; color: #2C2A29; display: flex; flex-direction: column; align-items: center; }
+                header { display: flex; flex-direction: column; align-items: center; padding: 50px 20px 20px 20px; width: 100%; max-width: 800px; }
+                .logo { font-size: 22pt; font-style: italic; letter-spacing: 2px; }
+                .status-container { margin-top: 15px; font-family: sans-serif; font-size: 8pt; letter-spacing: 2px; color: #888; text-transform:uppercase; display:flex; align-items:center;}
+                .status-dot { width:6px; height:6px; background:#C5A059; display:inline-block; border-radius:50%; margin-right:5px; }
+
+                /* Layout Menu: Integrado como pestañas */
+                nav { position: static; transform: none; width: 100%; max-width: 800px; display: flex; justify-content: center; align-items: center; gap: 40px; padding: 20px 0; border-top: 1px solid #E5E2DA; border-bottom: 1px solid #E5E2DA; background: transparent; box-shadow: none; border-radius: 0; margin-bottom: 40px; }
+                .nav-btn { width: auto; height: auto; padding: 10px; background: transparent; border: none; cursor: pointer; border-bottom: 2px solid transparent; border-radius:0; display:flex; align-items:center;}
+                .nav-btn svg { width: 22px; fill: #ccc; }
+                .nav-btn.active { border-bottom: 2px solid #C5A059; background: transparent; }
+                .nav-btn.active svg { fill: #2C2A29; }
+
+                main { width: 100%; max-width: 800px; padding: 0 20px 100px 20px; }
+                .grid-cards { display: flex; gap: 40px; flex-direction: column; margin-bottom: 40px;}
+                .card { background: transparent; border: none; border-bottom: 1px solid #2C2A29; padding: 20px 0; text-align: center; border-radius:0; }
+                .card h2 { font-size: 10pt; font-weight: normal; letter-spacing: 2px; color: #888; margin:0 0 10px 0; text-transform:uppercase;}
+                .valor-gigante { font-size: 65pt; font-weight: normal; color: #111; }
+                .unit { font-size: 20pt; color: #C5A059; font-style: italic; }
+                .actions-panel { display: flex; justify-content: center; gap: 20px; margin-bottom: 50px; }
+                .btn-action { background: transparent; border: 1px solid #2C2A29; color: #2C2A29; padding: 12px 35px; font-family: inherit; font-size: 10pt; cursor: pointer; border-radius:0;}
+                .btn-action:hover { background: #2C2A29; color: #FCFBF7; }
+                .seccion-ajustes { background: #F6F4EE; padding: 40px; border: none; margin-bottom: 30px; text-align:center; }
+                .input-tesla { background: #FCFBF7; border: 1px solid #E5E2DA; padding: 12px; font-family: inherit; width: 100%; text-align:center; outline:none;}
+                .tabla-contenedor { border: none; padding: 20px 0; max-width:none;}
+                table { width: 100%; border-collapse: collapse; text-align: center; font-family:sans-serif; font-size:9pt;}
+                th { border-bottom: 1px solid #2C2A29; padding: 15px; font-family:'Playfair Display'; font-style:italic; font-size:12pt; font-weight:normal;}
+                td { padding: 15px; border-bottom: 1px solid #E5E2DA; color:#555;}
+                .chart-box { border: 1px solid #E5E2DA; padding: 20px; height: 450px; background:#fff; }
+            `,
+
+            /* TEMA 5: SIDEBAR DERECHO (Sci-Fi) */
+            scifi: `
+                body { font-family: 'Orbitron', sans-serif; background: #020b14; background-image: radial-gradient(circle at 50% 50%, #041d33 0%, #020b14 100%); color: #7dd3fc; display: block; padding-right: 100px; }
+                header { display: flex; justify-content: space-between; align-items:center; padding: 20px 40px; background: rgba(2,11,20,0.8); border-bottom: 2px solid #0ea5e9; }
+                .logo { font-size: 14pt; color: #bae6fd; letter-spacing: 3px; text-shadow: 0 0 10px #0ea5e9; }
+                .status-container { background: rgba(14,165,233,0.1); border: 1px solid #0ea5e9; padding: 5px 15px; border-radius: 4px; display:flex; align-items:center;}
+                .status-dot { width:8px; height:8px; background:#38bdf8; display:inline-block; box-shadow:0 0 8px #38bdf8; margin-right:5px;}
+
+                /* Layout Menu: Sidebar a la Derecha */
+                nav { position: fixed; right: 20px; top: 50%; transform: translateY(-50%); left: auto; bottom: auto; background: rgba(2,11,20,0.9); border: 1px solid #0ea5e9; padding: 15px 10px; border-radius: 8px; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 0 20px rgba(14,165,233,0.2); width: auto; height: auto; align-items: center;}
+                .nav-btn { width: 50px; height: 50px; background: transparent; border: none; cursor: pointer; border-radius: 4px; display:flex; justify-content:center; align-items:center;}
+                .nav-btn svg { width: 24px; fill: #0ea5e9; }
+                .nav-btn.active { background: rgba(14,165,233,0.3); border-right: 3px solid #38bdf8; }
+                .nav-btn.active svg { fill: #fff; }
+
+                main { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+                .grid-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 40px;}
+                .card { background: rgba(3,27,51,0.6); border: 1px solid #0ea5e9; border-radius: 4px; padding: 30px; text-align: left; position: relative; }
+                .card::before { content: ''; position: absolute; top:0; left:0; width:10px; height:10px; border-top:2px solid #38bdf8; border-left:2px solid #38bdf8;}
+                .card h2 { color: #bae6fd; font-size: 10pt; margin:0 0 15px 0;}
+                .valor-gigante { font-size: 45pt; font-weight: bold; color: #fff; text-shadow: 0 0 15px #0ea5e9; }
+                .unit { color: #38bdf8; font-size: 18pt; }
+                .actions-panel { display: flex; gap: 15px; margin-bottom: 30px; justify-content:center;}
+                .btn-action { background: rgba(14,165,233,0.2); border: 1px solid #0ea5e9; color: #bae6fd; font-family: inherit; padding: 12px 25px; cursor: pointer; border-radius: 4px; }
+                .btn-action:hover { background: #0ea5e9; color: #000; box-shadow: 0 0 15px #0ea5e9; }
+                .seccion-ajustes { background: rgba(3,27,51,0.4); border: 1px solid #0284c7; padding: 30px; border-radius: 4px; margin-bottom: 20px; }
+                .input-tesla { background: #020b14; color: #fff; border: 1px solid #0284c7; padding: 12px; font-family: inherit; width: 100%; outline:none;}
+                .tabla-contenedor { background: rgba(3,27,51,0.5); border: 1px solid #0ea5e9; padding: 20px; border-radius: 4px; max-width:none;}
+                table { width: 100%; border-collapse: collapse; text-align: left; }
+                th { color: #38bdf8; border-bottom: 1px solid #0ea5e9; padding: 12px; }
+                td { color: #fff; padding: 12px; border-bottom: 1px solid #031b33; }
+                .chart-box { background: rgba(3,27,51,0.6); border: 1px solid #0ea5e9; border-radius: 4px; padding: 20px; height: 420px; }
+            `
+        };
+
+        function aplicarArquitectura(tema) {
+            const styleTag = document.getElementById('theme-style');
+            styleTag.innerHTML = arquitecturas[tema];
+
+            const logo = document.getElementById('ui-logo');
+            if(tema==='retro') logo.textContent = "ECLIPSE_SYS v1.0";
+            else if(tema==='cyberpunk') logo.textContent = "⚡ ECLIPSE // NEON";
+            else if(tema==='luxury') logo.textContent = "The Eclipse";
+            else if(tema==='scifi') logo.textContent = "☄️ ORBITAL TELEMETRY";
+            else logo.textContent = "ECLIPSE TELEMETRY";
+
+            if(chartInstance) {
+                let col1 = '#555555', col2 = '#A0A0A0', grid = '#EAEAEA';
+                if(tema==='retro') { col1='#0f0'; col2='#080'; grid='#032003'; }
+                else if(tema==='cyberpunk') { col1='#00f0ff'; col2='#ff0055'; grid='#222'; }
+                else if(tema==='luxury') { col1='#2C2A29'; col2='#C5A059'; grid='#E5E2DA'; }
+                else if(tema==='scifi') { col1='#38bdf8'; col2='#0ea5e9'; grid='#031b33'; }
+
+                chartInstance.data.datasets[0].borderColor = col1;
+                chartInstance.data.datasets[1].borderColor = col2;
+                chartInstance.options.scales.x.grid.color = grid;
+                chartInstance.options.scales.yTemp.grid.color = grid;
+                chartInstance.update();
+            }
+        }
+
+        aplicarArquitectura('nordico');
+
+        // ==========================================
+        // LÓGICA JS 
+        // ==========================================
+        let historialDatos = [];
+        let chartInstance = null;
+        let contadorPestanas = 0;
+
+        function cambiarPestana(idPestana, elementoBoton) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(idPestana).classList.add('active');
+            if(elementoBoton) elementoBoton.classList.add('active');
+            if(idPestana === 'vista-grafica' && chartInstance) chartInstance.update();
+        }
+
+        function crearPestanaDinamica() {
+            const nombre = document.getElementById('nuevo-nombre-pestana').value.trim();
+            if(!nombre) return;
+            contadorPestanas++;
+            const idUnico = `pestana-dinamica-${contadorPestanas}`;
+
+            const nuevoContenido = document.createElement('div');
+            nuevoContenido.id = idUnico;
+            nuevoContenido.className = 'tab-content';
+            nuevoContenido.innerHTML = `<div class="grid-cards"><div class="card"><h2>${nombre}</h2><p style="color:#A0A0A0; font-size:11pt;">Módulo inyectado correctamente.</p></div></div>`;
+            document.getElementById('main-content').appendChild(nuevoContenido);
+
+            const nuevoBoton = document.createElement('button');
+            nuevoBoton.className = 'nav-btn';
+            nuevoBoton.title = nombre;
+            nuevoBoton.onclick = function() { cambiarPestana(idUnico, this); };
+            nuevoBoton.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`;
+            
+            const dock = document.getElementById('telemetryDock');
+            dock.insertBefore(nuevoBoton, dock.lastElementChild);
+            document.getElementById('nuevo-nombre-pestana').value = "";
+        }
+
+        function inicializarGrafica() {
+            const ctx = document.getElementById('graficaEclipse').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'Temp (°C)', data: [], borderColor: '#555555', borderWidth: 2, pointRadius: 0, yAxisID: 'yTemp', tension: 0.25 },
+                        { label: 'Lum (%)', data: [], borderColor: '#A0A0A0', borderWidth: 2, pointRadius: 0, yAxisID: 'yLuz', tension: 0.25 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: '#EAEAEA' } },
+                        yTemp: { type: 'linear', position: 'left', grid: { color: '#EAEAEA' } },
+                        yLuz: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, min: 0, max: 100 }
+                    }
+                }
+            });
+            aplicarArquitectura(document.querySelector('.t-btn:active') ? 'nordico' : 'nordico'); 
+        }
+
+        const botonConectar = document.getElementById('botonConectar');
+        botonConectar.addEventListener('click', async () => {
+            if ('serial' in navigator) {
+                try {
+                    const port = await navigator.serial.requestPort();
+                    await port.open({ baudRate: 9600 });
+                    
+                    document.getElementById('statusDot').style.backgroundColor = "#2ECC71"; 
+                    document.getElementById('statusTexto').textContent = "ONLINE";
+                    botonConectar.style.display = "none"; 
+                    document.getElementById('botonExcel').disabled = false;
+
+                    inicializarGrafica();
+                    const textDecoder = new TextDecoderStream();
+                    port.readable.pipeTo(textDecoder.writable);
+                    const reader = textDecoder.readable.getReader();
+                    let buffer = "";
+
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+                        buffer += value;
+                        if (buffer.includes('\n')) {
+                            const lineas = buffer.split('\n');
+                            buffer = lineas.pop(); 
+                            for (const linea of lineas) {
+                                try {
+                                    if(linea.trim().startsWith('{')) {
+                                        const datos = JSON.parse(linea.trim());
+                                        const ahora = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                                        let tempLimpia = parseFloat(datos.temperatura.toFixed(1));
+                                        let luzLimpia = Math.min(Math.max(parseInt(datos.luz), 0), 100);
+
+                                        historialDatos.push({"Time": ahora, "Temp": tempLimpia, "Lum": luzLimpia});
+
+                                        document.getElementById('temp-t1').textContent = tempLimpia;
+                                        document.getElementById('temp-t2').textContent = tempLimpia;
+                                        document.getElementById('luz-t1').textContent = luzLimpia;
+                                        document.getElementById('luz-t2').textContent = luzLimpia;
+
+                                        if (chartInstance) {
+                                            chartInstance.data.labels.push(ahora);
+                                            chartInstance.data.datasets[0].data.push(tempLimpia);
+                                            chartInstance.data.datasets[1].data.push(luzLimpia);
+                                            if(chartInstance.data.labels.length > 30) {
+                                                chartInstance.data.labels.shift();
+                                                chartInstance.data.datasets[0].data.shift();
+                                                chartInstance.data.datasets[1].data.shift();
+                                            }
+                                            chartInstance.update('none');
+                                        }
+                                    }
+                                } catch (e) { }
+                            }
+                        }
+                    }
+                } catch (error) { alert('Error: ' + error); }
+            } else { alert('Navegador no compatible.'); }
+        });
+
+        document.getElementById('botonExcel').addEventListener('click', () => {
+            if (historialDatos.length === 0) return;
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(historialDatos);
+            XLSX.utils.book_append_sheet(wb, ws, "Telemetry");
+            XLSX.writeFile(wb, "Eclipse_Telemetry_Report.xlsx");
+        });
+    </script>
+</body>
+</html>
